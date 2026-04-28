@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmartQuiz — Choose Topic</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/png" href="assets/favicon.png?v=2" />
+  <link rel="shortcut icon" href="assets/favicon.png?v=2" type="image/x-icon" />
+  <link rel="apple-touch-icon" href="assets/favicon.png?v=2">
+  <script src="theme.js"></script>
+</head>
+<body class="page-wrapper">
+  <img src="assets/domain_body_bg.png" class="page-bg-img" alt="" />
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar__inner">
+      <a href="domains.html" class="navbar__logo">
+        <img src="assets/logo.png" alt="Logo" />
+        <span>SmartQuiz</span>
+      </a>
+      <div class="navbar__right">
+        <button class="btn-ghost" onclick="history.back()">← Back</button>
+        <button class="btn-ghost btn-danger" id="logout-btn">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container" style="flex:1">
+
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb" aria-label="breadcrumb">
+      <a href="domains.html">Domains</a>
+      <span class="sep">/</span>
+      <span id="domain-label">…</span>
+    </nav>
+
+    <!-- Header -->
+    <header class="page-header" style="padding:1.5rem 0 1rem;text-align:left">
+      <p class="page-header__eyebrow">Step 2 of 3</p>
+      <h1 class="page-header__title" id="page-title">Select a Topic</h1>
+      <p class="page-header__subtitle">Pick a specific topic to focus your quiz on</p>
+    </header>
+
+    <!-- Topics -->
+    <div id="topics-container" class="topics-grid"></div>
+
+
+
+<script type="module">
+  import { requireAuth, logout } from "./auth.js";
+  import { renderTopics }        from "./topics.js";
+
+  const params = new URLSearchParams(window.location.search);
+  const domain = params.get("domain") || "";
+
+  console.log("topics.html: Page loaded");
+  console.log("topics.html: URL search params:", window.location.search);
+  console.log("topics.html: Domain parameter:", domain);
+
+  if (!domain) {
+    console.warn("topics.html: No domain parameter found, redirecting to domains.html");
+    window.location.href = "domains.html";
+  } else {
+    console.log("topics.html: Domain parameter valid, proceeding with requireAuth");
+  }
+
+  requireAuth(async (user) => {
+    console.log("topics.html: requireAuth callback executed for user:", user.email);
+    document.getElementById("logout-btn").addEventListener("click", logout);
+
+    // ─── Phase 1: Fetch Proper Domain Label ───
+    let domainLabel = domain.charAt(0).toUpperCase() + domain.slice(1);
+    
+    try {
+      const { db } = await import("./firebase-config.js");
+      const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+      
+      const domDoc = await getDoc(doc(db, "domains", domain));
+      if (domDoc.exists()) {
+        domainLabel = domDoc.data().name || domainLabel;
+      }
+    } catch (e) {
+       console.warn("Could not fetch domain name, using ID", e);
+    }
+
+    document.getElementById("domain-label").textContent = domainLabel;
+    document.getElementById("page-title").textContent   = `${domainLabel} Topics`;
+    document.title = `SmartQuiz — ${domainLabel} Topics`;
+
+    // ─── Phase 2: Render Topics (Local + Firestore) ───
+    const container = document.getElementById("topics-container");
+    await renderTopics(domain, container, (topicId) => {
+      const targetUrl = `difficulty.html?domain=${encodeURIComponent(domain)}&topic=${encodeURIComponent(topicId)}`;
+      console.log("topics.html: Topic clicked, navigating to:", targetUrl);
+      window.location.href = targetUrl;
+    });
+  });
+</script>
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2026 <span class="footer__trademark">SmartQuiz&trade;</span>. Made by <a href="https://www.linkedin.com/in/devanshmittal07/" target="_blank" class="footer__creator">Devansh Mittal</a>. All Rights Reserved.</p>
+    </div>
+  </footer>
+</body>
+</html>

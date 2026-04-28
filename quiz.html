@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmartQuiz — Quiz</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/png" href="assets/favicon.png?v=2" />
+  <link rel="shortcut icon" href="assets/favicon.png?v=2" type="image/x-icon" />
+  <link rel="apple-touch-icon" href="assets/favicon.png?v=2">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    /* ── Quiz Timer ───────────────────────────── */
+    .quiz-timer {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-variant-numeric: tabular-nums;
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      padding: 0.35rem 0.9rem;
+      border-radius: 999px;
+      border: 2px solid var(--accent, #6366f1);
+      color: var(--accent, #6366f1);
+      background: rgba(99,102,241,0.08);
+      transition: border-color 0.4s, color 0.4s, background 0.4s;
+      min-width: 90px;
+      justify-content: center;
+    }
+    .quiz-timer.warn {
+      border-color: #f59e0b;
+      color: #f59e0b;
+      background: rgba(245,158,11,0.10);
+    }
+    .quiz-timer.danger {
+      border-color: #ef4444;
+      color: #ef4444;
+      background: rgba(239,68,68,0.12);
+      animation: timer-pulse 0.8s ease-in-out infinite;
+    }
+    @keyframes timer-pulse {
+      0%, 100% { transform: scale(1); box-shadow: none; }
+      50%       { transform: scale(1.07); box-shadow: 0 0 12px rgba(239,68,68,0.5); }
+    }
+    /* Timeout overlay */
+    .timeout-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.75);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 9999;
+      animation: fadeIn 0.3s ease;
+    }
+    .timeout-box {
+      background: var(--bg-2, #1e1e2e);
+      border: 2px solid #ef4444;
+      border-radius: 1.2rem;
+      padding: 2.5rem 3rem;
+      text-align: center;
+      max-width: 380px;
+      box-shadow: 0 0 40px rgba(239,68,68,0.25);
+    }
+    .timeout-box h2 { font-size: 2rem; margin: 0 0 0.5rem; }
+    .timeout-box p  { color: var(--text-muted, #9ca3af); margin: 0 0 1.5rem; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    /* ── Review Upgrades ───────────────────────── */
+    .review-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    .ai-explain-btn {
+      background: rgba(139, 92, 246, 0.1);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      color: var(--accent-violet);
+      padding: 0.3rem 0.7rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .ai-explain-btn:hover {
+      background: var(--accent-violet);
+      color: white;
+    }
+    .ai-explanation-box {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: rgba(139, 92, 246, 0.05);
+      border-left: 3px solid var(--accent-violet);
+      border-radius: 4px;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      color: var(--text-secondary);
+      animation: slideDown 0.3s ease;
+    }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .ai-loader {
+      font-style: italic;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .ai-loader::after {
+      content: '...';
+      animation: dots 1.5s steps(5, end) infinite;
+    }
+    @keyframes dots { 0%, 20% { content: '.'; } 40% { content: '..'; } 60% { content: '...'; } 80%, 100% { content: ''; } }
+    
+    .certificate-unlock {
+      margin: 1.5rem 0;
+      padding: 1.5rem;
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+      border: 1px solid var(--accent-amber);
+      border-radius: var(--radius-lg);
+      text-align: center;
+    }
+    .certificate-unlock p {
+      font-family: var(--font-display);
+      font-weight: 800;
+      color: var(--accent-amber);
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+    }
+  </style>
+  <script src="theme.js"></script>
+</head>
+<body class="page-wrapper">
+  <img src="assets/domain_body_bg.png" class="page-bg-img" alt="" />
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar__inner">
+      <a href="domains.html" class="navbar__logo">
+        <img src="assets/logo.png" alt="Logo" />
+        <span>SmartQuiz</span>
+      </a>
+      <div class="navbar__right" style="display:flex;align-items:center;gap:0.75rem;">
+        <!-- Live countdown timer (hidden until quiz starts) -->
+        <div class="quiz-timer" id="quiz-timer" style="display:none" aria-live="polite" aria-label="Time remaining">
+          ⏱ <span id="timer-display">00:00</span>
+        </div>
+        <button class="btn-ghost" id="quit-btn">✕ Quit</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container container--narrow" style="flex:1">
+
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb" id="breadcrumb" aria-label="breadcrumb" style="visibility:hidden">
+      <a href="domains.html">Domains</a>
+      <span class="sep">/</span>
+      <a id="bc-domain" href="#">Domain</a>
+      <span class="sep">/</span>
+      <a id="bc-topic" href="#">Topic</a>
+      <span class="sep">/</span>
+      <span id="bc-diff">Difficulty</span>
+    </nav>
+
+    <!-- Meta chips -->
+    <div class="quiz-meta-bar" id="quiz-meta-bar" style="display:none">
+      <span class="meta-chip" id="meta-domain"></span>
+      <span class="meta-chip" id="meta-topic"></span>
+      <span class="meta-chip meta-chip--diff" id="meta-diff"></span>
+    </div>
+
+    <!-- Loading state -->
+    <div id="loading-state" class="loading-overlay">
+      <div class="spinner"></div>
+      <p class="loading-text">Loading questions…</p>
+    </div>
+
+    <!-- Empty state -->
+    <div id="empty-state" class="empty-state" style="display:none">
+      <span class="empty-icon">📭</span>
+      <p>No questions found for this selection.</p>
+      <br>
+      <button class="btn-outline" onclick="history.back()">← Go Back</button>
+    </div>
+
+    <!-- Quiz UI (hidden until questions load) -->
+    <div id="quiz-ui" style="display:none">
+
+      <!-- Progress -->
+      <div class="quiz-progress-wrap">
+        <div class="progress-info">
+          <span id="question-counter">Question 1 of 5</span>
+          <span id="progress-label">0/5 answered</span>
+        </div>
+        <div class="progress-bar-track">
+          <div id="progress-bar"></div>
+        </div>
+      </div>
+
+      <!-- Question -->
+      <div class="question-box">
+        <p id="question-text">Loading…</p>
+      </div>
+
+      <!-- Options -->
+      <div id="options-container"></div>
+
+      <!-- Navigation -->
+      <div class="quiz-nav">
+        <button class="btn-outline" id="btn-prev">← Previous</button>
+        <button class="btn-primary" id="btn-next">Next →</button>
+      </div>
+
+    </div>
+
+    <!-- Result (rendered here by quiz.js) -->
+    <div id="result-container"></div>
+
+  </main>
+
+<script type="module">
+  import { requireAuth, logout } from "./auth.js";
+  import { fetchQuestions }      from "./questions.js";
+  import { getTopicLabel }       from "./topics.js";
+  import {
+    initQuiz, nextQuestion, prevQuestion, renderResult, forceFinish
+  } from "./quiz.js";
+  import { auth, db } from "./firebase-config.js";
+  import {
+    collection, addDoc, doc, setDoc, getDoc, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const params     = new URLSearchParams(window.location.search);
+  const domain     = params.get("domain")      || "";
+  const topic      = params.get("topic")       || "";
+  const difficulty = params.get("difficulty")  || "easy";
+
+  // ── Timer durations by difficulty (seconds) ───────────────
+  const TIMER_SECONDS = { easy: 5 * 60, medium: 3 * 60, hard: 2 * 60 };
+  let _timerInterval = null;
+  let _timerExpired  = false;
+
+  function startTimer(onExpire) {
+    const totalSecs   = TIMER_SECONDS[difficulty] ?? 5 * 60;
+    let   remaining   = totalSecs;
+    const timerEl     = document.getElementById("quiz-timer");
+    const displayEl   = document.getElementById("timer-display");
+    timerEl.style.display = "inline-flex";
+
+    function tick() {
+      const mins = String(Math.floor(remaining / 60)).padStart(2, "0");
+      const secs = String(remaining % 60).padStart(2, "0");
+      displayEl.textContent = `${mins}:${secs}`;
+
+      // Colour states
+      timerEl.classList.toggle("warn",   remaining <= 60 && remaining > 30);
+      timerEl.classList.toggle("danger", remaining <= 30);
+
+      if (remaining <= 0) {
+        clearInterval(_timerInterval);
+        _timerExpired = true;
+        onExpire(totalSecs); // pass total as elapsed (time ran out)
+        return;
+      }
+      remaining--;
+    }
+
+    tick(); // paint immediately
+    _timerInterval = setInterval(tick, 1000);
+
+    // Return a function to read elapsed seconds at any moment
+    return () => totalSecs - remaining;
+  }
+
+  function stopTimer() {
+    if (_timerInterval) { clearInterval(_timerInterval); _timerInterval = null; }
+  }
+
+  // Called when timer hits zero — shows overlay then auto-submits
+  function handleTimeout(submitFn) {
+    stopTimer();
+    // Show timeout overlay
+    const overlay = document.createElement("div");
+    overlay.className = "timeout-overlay";
+    overlay.innerHTML = `
+      <div class="timeout-box">
+        <h2>⏰ Time's Up!</h2>
+        <p>Your answers have been submitted automatically.</p>
+        <div class="spinner" style="margin:0 auto 1rem;"></div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    // Small delay so the overlay is visible before the result screen replaces the page
+    setTimeout(() => {
+      document.body.removeChild(overlay);
+      submitFn();
+    }, 1800);
+  }
+
+  console.log("quiz.html: Page loaded");
+  console.log("quiz.html: URL search params:", window.location.search);
+  console.log("quiz.html: Domain:", domain, "Topic:", topic, "Difficulty:", difficulty);
+
+  if (!domain || !topic) {
+    console.warn("quiz.html: Missing domain or topic, redirecting to domains.html");
+    window.location.href = "domains.html";
+  } else {
+    console.log("quiz.html: Parameters valid, proceeding with requireAuth");
+  }
+
+  async function saveQuizResult(user, result, meta) {
+    if (!user || !user.uid || !user.email || user.email === "undefined") {
+      console.error("saveQuizResult: Invalid user data, skipping save", {
+        uid: user?.uid,
+        email: user?.email
+      });
+      return;
+    }
+
+    const score = Math.round((result.correct / result.total) * 100);
+    console.log("saveQuizResult: Calculating score", result.correct, "/", result.total, "=", score);
+
+    const isPerfectRound = score === 100;
+    const badges = [];
+    
+    if (isPerfectRound) {
+      badges.push("perfect-round");
+      console.log("🏆 PERFECT SCORE DETECTED! Badge earned: perfect-round");
+    }
+
+    const attemptsRef = collection(db, "quizAttempts");
+    const attemptData = {
+      uid: user.uid,
+      email: user.email,
+      domain: meta.domain,
+      topic: meta.topic,
+      difficulty: meta.difficulty,
+      correct: result.correct,
+      total: result.total,
+      percentage: score,
+      answers: result.answers,
+      timeSpent: meta.timeSpent || 0,
+      timedOut: meta.timedOut || false,
+      timestamp: serverTimestamp(),
+      createdAt: serverTimestamp(),
+      isPerfectRound: isPerfectRound,
+      badges: badges,
+    };
+
+    try {
+      console.log("saveQuizResult: Saving quiz attempt", attemptData);
+      const attemptRef = await addDoc(attemptsRef, attemptData);
+      console.log("saveQuizResult: Quiz attempt saved with ID", attemptRef.id);
+
+      const userRef = doc(db, "users", user.uid);
+      console.log("saveQuizResult: Getting user document for", user.uid);
+      const userSnapshot = await getDoc(userRef);
+      const userData = userSnapshot.exists() ? userSnapshot.data() : {};
+      console.log("saveQuizResult: Current user data", userData);
+
+      const bestScore = Math.max(userData.bestScore || 0, score);
+      console.log("saveQuizResult: New best score", bestScore);
+
+      const newTotalQuizzes = (userData.totalQuizzes || 0) + 1;
+      const newTotalCorrect = (userData.totalCorrect || 0) + result.correct;
+      const newTotalQuestions = (userData.totalQuestions || 0) + result.total;
+      const newPerfectRounds = (userData.perfectRounds || 0) + (isPerfectRound ? 1 : 0);
+
+      const updateData = {
+        lastScore: score,
+        bestScore,
+        totalQuizzes: newTotalQuizzes,
+        totalCorrect: newTotalCorrect,
+        totalQuestions: newTotalQuestions,
+        perfectRounds: newPerfectRounds,
+        lastQuizAt: serverTimestamp(),
+        ...(userData.role ? { role: userData.role } : {}),
+      };
+      console.log("saveQuizResult: Updating user with", updateData);
+
+      await setDoc(userRef, updateData, { merge: true });
+
+      if (isPerfectRound) {
+        console.log("🏆 Profile updated with perfect round! Total perfect rounds:", newPerfectRounds);
+      }
+
+      console.log("saveQuizResult: User profile updated successfully", user.uid, {
+        lastScore: score,
+        bestScore,
+        totalQuizzes: newTotalQuizzes,
+        totalCorrect: newTotalCorrect,
+        totalQuestions: newTotalQuestions,
+        perfectRounds: newPerfectRounds,
+      });
+    } catch (error) {
+      console.error("saveQuizResult: Error saving quiz result:", error);
+    }
+  }
+
+  if (!domain || !topic) window.location.href = "domains.html";
+
+  requireAuth(async () => {
+    console.log("quiz.html: requireAuth callback executed");
+    console.log("quiz.html: Starting quiz with domain:", domain, "topic:", topic, "difficulty:", difficulty);
+
+    let domainLabel = domain.charAt(0).toUpperCase() + domain.slice(1);
+    
+    try {
+      const { db } = await import("./firebase-config.js");
+      const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+      const domDoc = await getDoc(doc(db, "domains", domain));
+      if (domDoc.exists()) {
+        domainLabel = domDoc.data().name || domainLabel;
+      }
+    } catch (e) {}
+
+    const topicLabel  = getTopicLabel(domain.toLowerCase(), topic);
+    const diffLabel   = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
+
+    document.title = `SmartQuiz — ${topicLabel} (${diffLabel})`;
+
+    // Breadcrumb
+    const bcDomain = document.getElementById("bc-domain");
+    bcDomain.textContent = domainLabel;
+    bcDomain.href        = `topics.html?domain=${encodeURIComponent(domain)}`;
+    const bcTopic = document.getElementById("bc-topic");
+    bcTopic.textContent = topicLabel;
+    bcTopic.href        = `difficulty.html?domain=${encodeURIComponent(domain)}&topic=${encodeURIComponent(topic)}`;
+    document.getElementById("bc-diff").textContent = diffLabel;
+    document.getElementById("breadcrumb").style.visibility = "visible";
+
+    // Meta chips
+    document.getElementById("meta-domain").textContent = domainLabel;
+    document.getElementById("meta-topic").textContent  = topicLabel;
+    const metaDiff = document.getElementById("meta-diff");
+    metaDiff.textContent = diffLabel;
+    metaDiff.classList.add(difficulty);
+
+    // Quit button — stop timer before navigating away
+    document.getElementById("quit-btn").addEventListener("click", () => {
+      if (confirm("Are you sure you want to quit the quiz?")) {
+        stopTimer();
+        window.location.href = "domains.html";
+      }
+    });
+
+    // Load questions
+    let questions = [];
+    try {
+      console.log("quiz.html: fetching questions for", domain, topic, difficulty);
+      questions = await fetchQuestions(domain, topic, difficulty);
+    } catch (err) {
+      console.error("Error loading questions:", err);
+      document.getElementById("loading-state").style.display = "none";
+      document.getElementById("empty-state").style.display = "flex";
+      document.getElementById("empty-state").querySelector("p").textContent = "Failed to load questions (check console).";
+      return;
+    }
+
+    document.getElementById("loading-state").style.display = "none";
+
+    console.log("quiz.html: Loaded questions count", questions.length);
+    if (!questions || questions.length === 0) {
+      document.getElementById("empty-state").style.display = "flex";
+      document.getElementById("empty-state").querySelector("p").textContent = "No questions available. If this keeps happening, check console logs for fetch source.";
+      return;
+    }
+
+    // Show quiz
+    document.getElementById("quiz-meta-bar").style.display = "flex";
+    document.getElementById("quiz-ui").style.display = "block";
+
+    initQuiz(questions);
+
+    // ── Shared finish handler (used by both Next/Finish btn and timer) ──
+    async function finishQuiz(result, timeSpent = 0, timedOut = false) {
+      stopTimer(); // always stop timer when quiz ends
+      console.log("Quiz completed with result:", result, "timeSpent:", timeSpent, "timedOut:", timedOut);
+
+      document.getElementById("quiz-ui").style.display      = "none";
+      document.getElementById("quiz-meta-bar").style.display = "none";
+      document.getElementById("breadcrumb").style.visibility = "hidden";
+      document.getElementById("quiz-timer").style.display    = "none";
+
+      const currentUser = auth.currentUser;
+      console.log("Current user for saving:", currentUser?.email || "null");
+      if (currentUser) {
+        await saveQuizResult(currentUser, result, {
+          domain: domainLabel, topic: topicLabel, difficulty: diffLabel,
+          timeSpent, timedOut
+        });
+      } else {
+        console.error("No current user to save quiz result");
+      }
+
+      const resultContainer = document.getElementById("result-container");
+      renderResult(result, resultContainer, {
+        domain: domainLabel, topic: topicLabel, difficulty: diffLabel,
+        timedOut
+      });
+      resultContainer.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    // Start the countdown — getElapsed() returns seconds used so far
+    const getElapsed = startTimer((elapsed) => handleTimeout(() => finishQuiz(forceFinish(), elapsed, true)));
+
+    document.getElementById("btn-next").addEventListener("click", () => {
+      nextQuestion(async (result) => {
+        await finishQuiz(result, getElapsed(), false);
+      });
+    });
+
+    document.getElementById("btn-prev").addEventListener("click", prevQuestion);
+  });
+</script>
+</body>
+</html>

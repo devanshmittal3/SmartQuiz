@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmartQuiz — Choose Domain</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/png" href="assets/favicon.png?v=2" />
+  <link rel="shortcut icon" href="assets/favicon.png?v=2" type="image/x-icon" />
+  <link rel="apple-touch-icon" href="assets/favicon.png?v=2">
+  <script src="theme.js"></script>
+</head>
+
+<body class="page-wrapper">
+  <img src="assets/domain_body_bg.png" class="page-bg-img" alt="" />
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar__inner">
+      <a href="domains.html" class="navbar__logo">
+        <img src="assets/logo.png" alt="Logo" />
+        <span>SmartQuiz</span>
+      </a>
+      <div class="navbar__right">
+        <div id="profile-launcher" class="navbar__user" title="View profile" style="cursor: pointer;">
+          <div class="avatar" id="user-avatar" style="position:relative; overflow:hidden;">
+            <span id="user-avatar-text" style="position:relative; z-index:1;">?</span>
+            <img id="user-avatar-img" alt="avatar"
+              style="display:none; width:100%; height:100%; object-fit:cover; position:absolute; inset:0; border-radius:50%; z-index:2;" />
+          </div>
+          <div>
+            <span id="user-name">Loading…</span>
+            <div id="user-stats" class="user-stats">
+              <span id="user-total-quizzes">Quizzes: 0</span>
+              <span id="user-best-score">Best: 0%</span>
+              <span id="user-avg-score">Avg: 0%</span>
+              <span id="user-last-score">Last: 0%</span>
+            </div>
+          </div>
+        </div>
+        <button class="btn-ghost btn-danger" id="logout-btn">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Header -->
+  <header class="container">
+    <div class="domains-hero-wrapper">
+      <img src="assets/domain_hero.png" class="domains-hero-bg" alt="Hero background" />
+      <div class="domains-hero-content">
+        <p class="page-header__eyebrow">Choose a Domain</p>
+        <h1 class="page-header__title" style="margin-top: 0">What do you want to practice?</h1>
+        <p class="page-header__subtitle">Select a subject to explore topics and start a quiz</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Domain Grid & Leaderboard -->
+  <main class="container domains-layout">
+    <div class="domains-main">
+      <div id="domains-container" class="domains-grid">
+        <!-- Loading skeletons -->
+        <div class="domain-card skeleton" style="height:160px"></div>
+        <div class="domain-card skeleton" style="height:160px;animation-delay:.08s"></div>
+        <div class="domain-card skeleton" style="height:160px;animation-delay:.16s"></div>
+        <div class="domain-card skeleton" style="height:160px;animation-delay:.24s"></div>
+      </div>
+    </div>
+
+    <!-- Leaderboard Sidebar -->
+    <aside class="leaderboard-sidebar"> <!-- Changed class from leaderboard-card to leaderboard-sidebar -->
+      <div class="leaderboard-header">
+        <h3>🏆 Top Scholars</h3>
+        <span class="live-indicator">LIVE</span>
+      </div>
+      <div id="leaderboard-list" class="leaderboard-list">
+        <div class="leader-item skeleton-text"></div>
+        <div class="leader-item skeleton-text" style="animation-delay:.1s"></div>
+        <div class="leader-item skeleton-text" style="animation-delay:.2s"></div>
+      </div>
+    </aside>
+  </main>
+
+
+
+  <script type="module">
+    import { requireAuth, logout } from "./auth.js";
+    import { db } from "./firebase-config.js";
+    import {
+      collection, getDocs, doc, getDoc, query, orderBy, limit, onSnapshot
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // Fallback domain data (used when Firestore returns nothing)
+    const FALLBACK_DOMAINS = [
+      { id: "mathematics", name: "Mathematics", icon: "➕" },
+      { id: "science", name: "Science", icon: "🔬" },
+      { id: "english", name: "English", icon: "📖" },
+      { id: "computer", name: "Computer", icon: "💻" },
+      { id: "sst", name: "SST", icon: "🌍" },
+      { id: "hindi", name: "Hindi", icon: "🇮🇳" },
+    ];
+
+    requireAuth(async (user) => {
+      console.log("domains.html: requireAuth callback called for", user.email);
+
+      // Show user info
+      const nameEl = document.getElementById("user-name");
+      const avatarEl = document.getElementById("user-avatar");
+      const avatarText = document.getElementById("user-avatar-text");
+      const avatarImg = document.getElementById("user-avatar-img");
+      const displayName = user.displayName || user.email.split("@")[0];
+
+      // Helper: is this a usable permanent URL?
+      function isValidAvatarUrl(url) {
+        return url && url !== "null" && url !== "undefined" && !url.startsWith("blob:");
+      }
+
+      function setNavAvatar(url) {
+        if (isValidAvatarUrl(url)) {
+          avatarImg.onerror = () => {
+            // Image failed — clear bad cache and show initials
+            localStorage.removeItem("avatar_" + user.uid);
+            sessionStorage.removeItem("avatarUrl");
+            avatarImg.style.display = "none";
+            if (avatarText) { avatarText.style.display = "block"; avatarText.textContent = displayName.charAt(0).toUpperCase(); }
+            avatarEl.style.backgroundColor = "var(--gradient-main)";
+          };
+          avatarImg.src = url;
+          avatarImg.style.display = "block";
+          if (avatarText) avatarText.style.display = "none";
+          avatarEl.style.backgroundColor = "transparent";
+          avatarEl.style.backgroundImage = "none";
+        } else {
+          avatarImg.style.display = "none";
+          if (avatarText) {
+            avatarText.style.display = "block";
+            avatarText.textContent = displayName.charAt(0).toUpperCase();
+          }
+          avatarEl.style.backgroundColor = "var(--gradient-main)";
+          avatarEl.style.backgroundImage = "none";
+        }
+      }
+
+      // Store uid so profile.html instant-cache works cross-page
+      sessionStorage.setItem("lastUid", user.uid);
+
+      nameEl.textContent = displayName;
+      sessionStorage.setItem("displayName", displayName);
+
+      // Show avatar immediately — try sessionStorage first (fastest), then localStorage
+      const sessionAvatar = sessionStorage.getItem("avatarUrl");
+      const localAvatar = localStorage.getItem("avatar_" + user.uid);
+      setNavAvatar(user.photoURL || sessionAvatar || localAvatar || null);
+
+      avatarEl.style.cursor = "pointer";
+      avatarEl.addEventListener("click", () => { window.location.href = "profile.html"; });
+      nameEl.style.cursor = "pointer";
+      nameEl.addEventListener("click", () => { window.location.href = "profile.html"; });
+
+      // Load user stats from Firestore — also confirms/updates the avatar URL
+      try {
+        console.log("domains.html: Loading user stats for", user.uid);
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists() && userDoc.data().avatarUrl) {
+          const avatarUrl = userDoc.data().avatarUrl;
+          // Sync both caches with the latest Firestore URL
+          localStorage.setItem("avatar_" + user.uid, avatarUrl);
+          sessionStorage.setItem("avatarUrl", avatarUrl);
+          setNavAvatar(avatarUrl);
+        }
+        console.log("domains.html: User document exists?", userDoc.exists());
+        console.log("domains.html: User document exists?", userDoc.exists());
+        if (userDoc.exists()) {
+          console.log("domains.html: User document data", userDoc.data());
+          const data = userDoc.data();
+          const totalQuizzes = data.totalQuizzes || 0;
+          const bestScore = data.bestScore || 0;
+          const totalCorrect = data.totalCorrect || 0;
+          const totalQuestions = data.totalQuestions || 0;
+          const lastScore = data.lastScore || 0;
+          const avgScore = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+
+          console.log("domains.html: Calculated stats", {
+            totalQuizzes, bestScore, totalCorrect, totalQuestions, lastScore, avgScore
+          });
+
+          document.getElementById("user-total-quizzes").textContent = `Quizzes: ${totalQuizzes}`;
+          document.getElementById("user-best-score").textContent = `Best: ${bestScore}%`;
+          document.getElementById("user-avg-score").textContent = `Avg: ${avgScore}%`;
+          document.getElementById("user-last-score").textContent = `Last: ${lastScore}%`;
+        } else {
+          console.log("domains.html: User document not found");
+        }
+      } catch (err) {
+        console.error("domains.html: Failed to load user stats:", err);
+      }
+
+      // Logout
+      document.getElementById("logout-btn").addEventListener("click", logout);
+
+      // Profile link
+      document.getElementById("profile-launcher").addEventListener("click", () => {
+        window.location.href = "profile.html";
+      });
+
+      // Load domains and leaderboard
+      await loadDomains();
+      initLeaderboard();
+    });
+
+    function initLeaderboard() {
+      const listContainer = document.getElementById("leaderboard-list");
+      // Fetch users without orderBy to avoid manual index requirement in Firebase Console
+      const q = query(collection(db, "users"), limit(50));
+
+      onSnapshot(q, (snapshot) => {
+        if (snapshot.empty) {
+          listContainer.innerHTML = `<p class="empty-msg">No entries yet.</p>`;
+          return;
+        }
+
+        // Sort in JavaScript instead of Firestore query
+        const sortedDocs = snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .sort((a, b) => (b.bestScore || 0) - (a.bestScore || 0))
+          .slice(0, 5);
+
+        listContainer.innerHTML = sortedDocs.map((data, i) => {
+          const sanitizeString = (str) => {
+            if (!str) return "";
+            const s = String(str).trim();
+            const bad = ["undefined", "null", "anonymous"];
+            if (bad.includes(s.toLowerCase())) return "";
+            return s;
+          };
+
+          const rawEmail = sanitizeString(data.email);
+          const name = sanitizeString(data.name) || (rawEmail ? rawEmail.split('@')[0] : "Anonymous");
+          const score = data.bestScore || 0;
+          const initials = name.charAt(0).toUpperCase();
+          const rankClass = i === 0 ? "rank-1" : i === 1 ? "rank-2" : i === 2 ? "rank-3" : "";
+
+          return `
+            <div class="leader-item ${rankClass}">
+              <div class="leader-rank">${i + 1}</div>
+              <div class="leader-avatar">${initials}</div>
+              <div class="leader-info">
+                <div class="leader-name">${name}</div>
+                <div class="leader-score">${score}% Best</div>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }, (err) => {
+        console.error("Leaderboard Error:", err);
+        listContainer.innerHTML = `<p class="empty-msg">Unable to load leaderboard. Check console for errors.</p>`;
+      });
+    }
+
+    async function loadDomains() {
+      const container = document.getElementById("domains-container");
+      let domains = [];
+
+      try {
+        const snap = await getDocs(collection(db, "domains"));
+        if (!snap.empty) {
+          domains = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        } else {
+          domains = FALLBACK_DOMAINS;
+        }
+      } catch (e) {
+        console.warn("Firestore unavailable, using fallback domains:", e);
+        domains = FALLBACK_DOMAINS;
+      }
+
+      if (domains.length === 0) {
+        container.innerHTML = `
+        <div class="empty-state" style="grid-column:1/-1">
+          <span class="empty-icon">📭</span>
+          <p>No domains available right now.</p>
+        </div>`;
+        return;
+      }
+
+      container.innerHTML = domains.map((d, i) => `
+      <button
+        class="domain-card"
+        data-id="${d.id}"
+        style="animation-delay:${i * 70}ms"
+        aria-label="Select ${d.name}"
+      >
+        <div class="domain-card__icon">${d.icon || "📚"}</div>
+        <div class="domain-card__name">${d.name}</div>
+      </button>`
+      ).join("");
+
+      container.querySelectorAll(".domain-card").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          window.location.href = `topics.html?domain=${encodeURIComponent(btn.dataset.id)}`;
+        });
+      });
+    }
+  </script>
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2026 <span class="footer__trademark">SmartQuiz&trade;</span>. Made by <a href="https://www.linkedin.com/in/devanshmittal07/" target="_blank" class="footer__creator">Devansh Mittal</a>. All Rights Reserved.</p>
+    </div>
+  </footer>
+</body>
+
+</html>

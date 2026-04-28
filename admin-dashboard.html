@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmartQuiz — Admin Dashboard</title>
+  <link rel="stylesheet" href="style.css?v=1.0.3" />
+  <link rel="icon" type="image/png" href="assets/favicon.png?v=2" />
+  <link rel="shortcut icon" href="assets/favicon.png?v=2" type="image/x-icon" />
+  <link rel="apple-touch-icon" href="assets/favicon.png?v=2">
+  <script src="theme.js"></script>
+</head>
+
+<body class="admin-layout">
+  <img src="assets/domain_body_bg.png" class="page-bg-img" alt="" />
+  
+  <!-- Sidebar -->
+  <aside class="admin-sidebar" id="admin-sidebar">
+    <div class="sidebar-logo">
+      <img src="assets/logo.png" alt="Logo" style="height: 48px; width: auto; margin-bottom: 0.75rem;" />
+      <h2>🔐 SmartQuiz</h2>
+      <p>Admin Panel</p>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-section="dashboard">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Dashboard</span>
+      </button>
+      <button class="nav-item" data-section="domains">
+        <span class="nav-icon">🗂️</span>
+        <span class="nav-label">Manage Domains</span>
+      </button>
+      <button class="nav-item" data-section="topics">
+        <span class="nav-icon">📚</span>
+        <span class="nav-label">Manage Topics</span>
+      </button>
+      <button class="nav-item" data-section="questions">
+        <span class="nav-icon">❓</span>
+        <span class="nav-label">Manage Questions</span>
+      </button>
+      <button class="nav-item" data-section="users">
+        <span class="nav-icon">👥</span>
+        <span class="nav-label">Manage Users</span>
+      </button>
+    </nav>
+
+    <button class="nav-item nav-logout" id="logout-btn">
+      <span class="nav-icon">🚪</span>
+      <span class="nav-label">Logout</span>
+    </button>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="admin-main">
+    <!-- Top Bar -->
+    <div class="admin-topbar">
+      <div class="topbar-left">
+        <button class="hamburger-menu" id="hamburger-btn" aria-label="Toggle menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+        <h1 id="section-title">Dashboard</h1>
+      </div>
+      <div class="topbar-right">
+        <div class="admin-user">
+          <span class="admin-avatar" id="admin-avatar"
+            style="position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center;">
+            <span id="admin-avatar-text" style="position:relative; z-index:1;">A</span>
+            <img id="admin-avatar-img" alt="avatar"
+              style="display:none; width:100%; height:100%; object-fit:cover; position:absolute; inset:0; border-radius:50%; z-index:2;" />
+          </span>
+          <span class="admin-name" id="admin-name">Admin</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="admin-content">
+
+      <!-- Dashboard Section -->
+      <section id="dashboard-section" class="admin-section active">
+        <h2>Welcome to SmartQuiz Admin</h2>
+        <div class="dashboard-cards">
+          <div class="stat-card">
+            <div class="stat-icon">🗂️</div>
+            <div class="stat-info">
+              <div class="stat-label">Domains</div>
+              <div class="stat-value" id="stat-domains">0</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📚</div>
+            <div class="stat-info">
+              <div class="stat-label">Topics</div>
+              <div class="stat-value" id="stat-topics">0</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">❓</div>
+            <div class="stat-info">
+              <div class="stat-label">Questions</div>
+              <div class="stat-value" id="stat-questions">0</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">👥</div>
+            <div class="stat-info">
+              <div class="stat-label">Users</div>
+              <div class="stat-value" id="stat-users">0</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Domains Section -->
+      <section id="domains-section" class="admin-section">
+        <div class="section-header">
+          <h2>Manage Domains</h2>
+          <button class="btn-primary" id="add-domain-btn">+ Add Domain</button>
+        </div>
+        <div id="domains-list" class="admin-list"></div>
+      </section>
+
+      <!-- Topics Section -->
+      <section id="topics-section" class="admin-section">
+        <div class="section-header">
+          <h2>Manage Topics</h2>
+          <button class="btn-primary" id="add-topic-btn">+ Add Topic</button>
+        </div>
+        <div class="section-filters">
+          <select id="domain-filter" class="form-input" style="max-width: 200px;">
+            <option value="">All Domains</option>
+          </select>
+        </div>
+        <div id="topics-list" class="admin-list"></div>
+      </section>
+
+      <!-- Questions Section -->
+      <section id="questions-section" class="admin-section">
+        <div class="section-header">
+          <h2>Manage Questions</h2>
+          <button class="btn-primary" id="add-question-btn">+ Add Question</button>
+        </div>
+        <div class="section-filters">
+          <select id="question-domain-filter" class="form-input" style="max-width: 200px;">
+            <option value="">All Domains</option>
+          </select>
+          <select id="question-difficulty-filter" class="form-input" style="max-width: 200px;">
+            <option value="">All Difficulties</option>
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </div>
+        <div id="questions-list" class="admin-list"></div>
+      </section>
+
+      <!-- Users Section -->
+      <section id="users-section" class="admin-section">
+        <div class="section-header">
+          <h2>Manage Users</h2>
+        </div>
+        <div id="users-list" class="admin-list"></div>
+
+        <div class="section-header" style="margin-top:1.5rem;">
+          <h2>Leaderboard (Top 10)</h2>
+        </div>
+        <div id="leaderboard-list" class="admin-list"></div>
+      </section>
+
+    </div>
+
+    <footer class="footer">
+      <div class="container">
+        <p>&copy; 2026 <span class="footer__trademark">SmartQuiz&trade;</span>. Made by <a href="https://www.linkedin.com/in/devanshmittal07/" target="_blank" class="footer__creator">Devansh Mittal</a>. All Rights Reserved.</p>
+      </div>
+    </footer>
+  </main>
+
+  <!-- Modal for Adding/Editing -->
+  <div id="admin-modal" class="admin-modal" style="display: none;">
+    <div class="admin-modal-content">
+      <button class="modal-close" id="modal-close">&times;</button>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="admin-toast" class="toast" style="display: none;"></div>
+
+  <script type="module">
+    import { requireAdminAuth, logout } from "./admin-auth.js";
+    import { db } from "./firebase-config.js";
+    import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { loadDashboard } from "./admin-dashboard.js";
+    import { setupDomainsSection } from "./admin-domains.js";
+    import { setupTopicsSection } from "./admin-topics.js";
+    import { setupQuestionsSection } from "./admin-questions.js";
+    import { setupUsersSection } from "./admin-users.js";
+
+    // Check admin authentication
+    await requireAdminAuth();
+
+    // Setup admin info
+    const adminNameEl = document.getElementById("admin-name");
+    const adminAvatarEl = document.getElementById("admin-avatar");
+    const adminAvatarText = document.getElementById("admin-avatar-text");
+    const adminAvatarImg = document.getElementById("admin-avatar-img");
+    const adminEmail = localStorage.getItem("adminEmail") || "Admin";
+    const adminUid = localStorage.getItem("adminUid");
+    const adminInitial = adminEmail.charAt(0).toUpperCase();
+
+    function setAdminAvatar(url) {
+      if (url && !url.startsWith('blob:') && url !== "null" && url !== "undefined") {
+        adminAvatarImg.src = url;
+        adminAvatarImg.style.display = "block";
+        if (adminAvatarText) adminAvatarText.style.display = "none";
+        adminAvatarEl.style.backgroundColor = "transparent";
+        adminAvatarEl.style.backgroundImage = "none";
+      } else {
+        adminAvatarImg.style.display = "none";
+        if (adminAvatarText) {
+          adminAvatarText.style.display = "block";
+          adminAvatarText.textContent = adminInitial;
+        }
+        adminAvatarEl.style.backgroundImage = "none";
+      }
+    }
+
+    const adminDisplayName = (adminEmail && adminEmail !== "undefined") ? adminEmail.split("@")[0] : "Admin";
+    adminNameEl.textContent = adminDisplayName;
+    setAdminAvatar(null);
+
+    if (adminUid) {
+      try {
+        sessionStorage.setItem("lastUid", adminUid);
+
+        // Show avatar immediately — sessionStorage first (fastest), then localStorage
+        const sessionAvatar = sessionStorage.getItem("avatarUrl");
+        const localAvatar   = localStorage.getItem("avatar_" + adminUid);
+        if (sessionAvatar || localAvatar) {
+          setAdminAvatar(sessionAvatar || localAvatar);
+        }
+
+        const adminDoc = await getDoc(doc(db, "users", adminUid));
+        if (adminDoc.exists()) {
+          const data = adminDoc.data();
+          if (data.name) adminNameEl.textContent = data.name;
+          if (data.avatarUrl) {
+            // Sync both caches from Firestore (source of truth)
+            localStorage.setItem("avatar_" + adminUid, data.avatarUrl);
+            sessionStorage.setItem("avatarUrl", data.avatarUrl);
+            setAdminAvatar(data.avatarUrl);
+          }
+        }
+      } catch (error) {
+        console.warn("Unable to fetch admin profile", error);
+      }
+    }
+
+    // Section navigation
+    const navItems = document.querySelectorAll(".nav-item[data-section]");
+    const sections = document.querySelectorAll(".admin-section");
+    const sectionTitle = document.getElementById("section-title");
+
+    const openProfile = () => { window.location.href = "profile.html"; };
+    adminNameEl.style.cursor = "pointer";
+    adminAvatarEl.style.cursor = "pointer";
+    adminNameEl.addEventListener("click", openProfile);
+    adminAvatarEl.addEventListener("click", openProfile);
+
+    const sectionTitles = {
+      dashboard: "Dashboard",
+      domains: "Manage Domains",
+      topics: "Manage Topics",
+      questions: "Manage Questions",
+      users: "Manage Users"
+    };
+
+    navItems.forEach(item => {
+      item.addEventListener("click", () => {
+        const section = item.dataset.section;
+
+        // Update active nav item
+        navItems.forEach(n => n.classList.remove("active"));
+        item.classList.add("active");
+
+        // Update active section
+        sections.forEach(s => s.classList.remove("active"));
+        document.getElementById(`${section}-section`).classList.add("active");
+
+        // Update title
+        sectionTitle.textContent = sectionTitles[section];
+      });
+    });
+
+    // Logout
+    document.getElementById("logout-btn").addEventListener("click", async () => {
+      if (confirm("Are you sure you want to logout?")) {
+        await logout();
+        window.location.href = "admin.html";
+      }
+    });
+
+    // Mobile Sidebar Toggle
+    const hamburgerBtn = document.getElementById("hamburger-btn");
+    const adminSidebar = document.getElementById("admin-sidebar");
+    const sidebarOverlay = document.getElementById("sidebar-overlay");
+
+    const toggleSidebar = () => {
+      adminSidebar.classList.toggle("open");
+      sidebarOverlay.classList.toggle("active");
+      document.body.style.overflow = adminSidebar.classList.contains("open") ? "hidden" : "";
+    };
+
+    hamburgerBtn.addEventListener("click", toggleSidebar);
+    sidebarOverlay.addEventListener("click", toggleSidebar);
+
+    // Close sidebar when clicking a nav item on mobile
+    navItems.forEach(item => {
+      item.addEventListener("click", () => {
+        if (window.innerWidth <= 768) {
+          toggleSidebar();
+        }
+      });
+    });
+
+    // Initialize sections
+    await loadDashboard();
+    await setupDomainsSection();
+    await setupTopicsSection();
+    await setupQuestionsSection();
+    await setupUsersSection();
+  </script>
+
+  <!-- Sidebar Overlay (Mobile only) moved to end -->
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+</body>
+
+</html>

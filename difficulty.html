@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmartQuiz — Choose Difficulty</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/png" href="assets/favicon.png?v=2" />
+  <link rel="shortcut icon" href="assets/favicon.png?v=2" type="image/x-icon" />
+  <link rel="apple-touch-icon" href="assets/favicon.png?v=2">
+  <script src="theme.js"></script>
+</head>
+<body class="page-wrapper">
+  <img src="assets/domain_body_bg.png" class="page-bg-img" alt="" />
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar__inner">
+      <a href="domains.html" class="navbar__logo">
+        <img src="assets/logo.png" alt="Logo" />
+        <span>SmartQuiz</span>
+      </a>
+      <div class="navbar__right">
+        <button class="btn-ghost" onclick="history.back()">← Back</button>
+        <button class="btn-ghost btn-danger" id="logout-btn">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container container--narrow" style="flex:1">
+
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb" aria-label="breadcrumb">
+      <a href="domains.html">Domains</a>
+      <span class="sep">/</span>
+      <a id="bc-domain" href="#">Domain</a>
+      <span class="sep">/</span>
+      <span id="bc-topic">Topic</span>
+    </nav>
+
+    <!-- Header -->
+    <header class="page-header" style="padding:1.5rem 0 1rem;text-align:left">
+      <p class="page-header__eyebrow">Step 3 of 3</p>
+      <h1 class="page-header__title">Choose Difficulty</h1>
+      <p class="page-header__subtitle" id="sub-line">Select how challenging you want the quiz to be</p>
+    </header>
+
+    <!-- Difficulty Cards -->
+    <div class="difficulty-grid">
+
+      <button class="difficulty-card diff-easy" data-diff="easy" style="animation-delay:0ms">
+        <span class="diff-emoji">🟢</span>
+        <span class="diff-name">Easy</span>
+        <span class="diff-desc">Perfect for beginners and revision</span>
+        <span class="diff-badge">5 Questions</span>
+      </button>
+
+      <button class="difficulty-card diff-medium" data-diff="medium" style="animation-delay:90ms">
+        <span class="diff-emoji">🟡</span>
+        <span class="diff-name">Medium</span>
+        <span class="diff-desc">For those ready to be tested</span>
+        <span class="diff-badge">5 Questions</span>
+      </button>
+
+      <button class="difficulty-card diff-hard" data-diff="hard" style="animation-delay:180ms">
+        <span class="diff-emoji">🔴</span>
+        <span class="diff-name">Hard</span>
+        <span class="diff-desc">Challenging problems for experts</span>
+        <span class="diff-badge">5 Questions</span>
+      </button>
+
+    </div>
+
+
+
+<script type="module">
+  import { requireAuth, logout } from "./auth.js";
+  import { getTopicLabel }       from "./topics.js";
+
+  const params = new URLSearchParams(window.location.search);
+  const domain = params.get("domain") || "";
+  const topic  = params.get("topic") || "";
+
+  console.log("difficulty.html: Page loaded");
+  console.log("difficulty.html: URL search params:", window.location.search);
+  console.log("difficulty.html: Domain:", domain, "Topic:", topic);
+
+  if (!domain || !topic) {
+    console.warn("difficulty.html: Missing domain or topic, redirecting to domains.html");
+    window.location.href = "domains.html";
+  } else {
+    console.log("difficulty.html: Parameters valid, proceeding with requireAuth");
+  }
+
+  // Update "5 questions" badges to "Full Set" or "Dynamic"
+  document.querySelectorAll(".diff-badge").forEach(b => b.textContent = "Full Quiz");
+
+  requireAuth(async (user) => {
+    console.log("difficulty.html: requireAuth callback executed for user:", user.email);
+    document.getElementById("logout-btn").addEventListener("click", logout);
+
+    let domainLabel = domain.charAt(0).toUpperCase() + domain.slice(1);
+    
+    try {
+      const { db } = await import("./firebase-config.js");
+      const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+      const domDoc = await getDoc(doc(db, "domains", domain));
+      if (domDoc.exists()) {
+        domainLabel = domDoc.data().name || domainLabel;
+      }
+    } catch (e) {}
+
+    const topicLabel  = getTopicLabel(domain, topic);
+
+    // Breadcrumb
+    const bcDomain = document.getElementById("bc-domain");
+    bcDomain.textContent = domainLabel;
+    bcDomain.href        = `topics.html?domain=${encodeURIComponent(domain)}`;
+    document.getElementById("bc-topic").textContent = topicLabel;
+
+    document.title = `SmartQuiz — ${topicLabel} Difficulty`;
+    document.getElementById("sub-line").textContent =
+      `${topicLabel} · Choose your level`;
+
+    // Difficulty click
+    document.querySelectorAll(".difficulty-card").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const diff = btn.dataset.diff;
+        const targetUrl = `quiz.html?domain=${encodeURIComponent(domain)}&topic=${encodeURIComponent(topic)}&difficulty=${diff}`;
+        console.log("difficulty.html: Difficulty selected, navigating to:", targetUrl);
+        window.location.href = targetUrl;
+      });
+    });
+  });
+</script>
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2026 <span class="footer__trademark">SmartQuiz&trade;</span>. Made by <a href="https://www.linkedin.com/in/devanshmittal07/" target="_blank" class="footer__creator">Devansh Mittal</a>. All Rights Reserved.</p>
+    </div>
+  </footer>
+</body>
+</html>

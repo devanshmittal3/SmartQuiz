@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmartQuiz — Admin Login</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/png" href="assets/favicon.png?v=2" />
+  <link rel="shortcut icon" href="assets/favicon.png?v=2" type="image/x-icon" />
+  <link rel="apple-touch-icon" href="assets/favicon.png?v=2">
+  <script src="theme.js"></script>
+</head>
+<body class="page-wrapper">
+<div class="auth-page" style="flex:1;">
+  <img src="assets/login_hero.png" class="auth-bg-img" alt="Background decoration" />
+  <div class="auth-box">
+
+    <div class="auth-logo">
+      <img src="assets/logo.png" alt="Logo" class="auth-logo-img" />
+      <h1>🔐 SmartQuiz Admin</h1>
+      <p>Manage content and users</p>
+    </div>
+
+    <!-- Login Form -->
+    <form id="admin-login-form" novalidate>
+      <div class="form-group">
+        <label class="form-label" for="admin-email">Email</label>
+        <input class="form-input" type="email" id="admin-email" placeholder="admin@example.com" required />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="admin-password">Password</label>
+        <input class="form-input" type="password" id="admin-password" placeholder="••••••••" required />
+      </div>
+      <div class="form-error" id="admin-error"></div>
+      <button type="submit" class="btn-primary form-submit" id="admin-login-btn">
+        <span id="admin-login-btn-text">Sign In</span>
+      </button>
+    </form>
+
+    <div style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">
+      <p>Back to <a href="index.html" style="color: var(--accent-blue); text-decoration: underline;">User Login</a></p>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>&copy; 2026 <span class="footer__trademark">SmartQuiz&trade;</span>. Made by <a href="https://www.linkedin.com/in/devanshmittal07/" target="_blank" class="footer__creator">Devansh Mittal</a>. All Rights Reserved.</p>
+  </div>
+</footer>
+
+<script type="module">
+  import { adminLogin } from "./admin-auth.js";
+  import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { auth } from "./firebase-config.js";
+  import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { db } from "./firebase-config.js";
+
+  // If already logged in, verify admin role and skip to dashboard
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) return;
+
+    try {
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (userDoc.exists() && userDoc.data().role === "admin") {
+        window.location.href = "admin-dashboard.html";
+      } else {
+        await signOut(auth);
+        const errorEl = document.getElementById("admin-error");
+        errorEl.textContent = "Access denied: admin role required. Please login with an admin account.";
+        errorEl.classList.add("visible");
+      }
+    } catch (err) {
+      console.error("Admin role check failed", err);
+      await signOut(auth);
+      const errorEl = document.getElementById("admin-error");
+      errorEl.textContent = "Unable to verify admin role. Please try again.";
+      errorEl.classList.add("visible");
+    }
+  });
+
+  // Admin Login Handler
+  const adminLoginForm = document.getElementById("admin-login-form");
+  const adminErrorEl = document.getElementById("admin-error");
+  const adminLoginBtn = document.getElementById("admin-login-btn");
+  const adminLoginBtnText = document.getElementById("admin-login-btn-text");
+
+  adminLoginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    adminErrorEl.textContent = "";
+    adminErrorEl.classList.remove("visible");
+
+    const email = document.getElementById("admin-email").value.trim();
+    const password = document.getElementById("admin-password").value;
+
+    adminLoginBtn.disabled = true;
+    adminLoginBtnText.textContent = "Signing in...";
+
+    try {
+      await adminLogin(email, password);
+      window.location.href = "admin-dashboard.html";
+    } catch (error) {
+      adminErrorEl.textContent = error.message || "Login failed. Please check credentials.";
+      adminErrorEl.classList.add("visible");
+    } finally {
+      adminLoginBtn.disabled = false;
+      adminLoginBtnText.textContent = "Sign In";
+    }
+  });
+</script>
+</body>
+</html>
