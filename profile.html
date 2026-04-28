@@ -933,6 +933,10 @@
           try {
             const summary = await analyzeLearningWeaknesses(attempts.slice(0, 10));
             
+            if (!summary || typeof summary !== 'string') {
+              throw new Error("Invalid or empty response from AI service.");
+            }
+
             // Robust Parser to turn AI bullet points into beautiful cards
             const lines = summary.split('\n').filter(l => l.trim().length > 3);
             let html = '<div class="ai-insight-group">';

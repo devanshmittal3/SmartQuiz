@@ -26,8 +26,9 @@ async function callAI(prompt) {
     throw new Error(data.error.message || "API Error");
   }
 
-  if (data.choices && data.choices[0].message) {
-    return data.choices[0].message.content;
+  if (data.choices && data.choices[0] && data.choices[0].message) {
+    const content = data.choices[0].message.content;
+    return (typeof content === 'string') ? content : "I'm sorry, the AI returned an empty response. Please try again.";
   }
 
   return "I'm sorry, I couldn't generate a response right now.";

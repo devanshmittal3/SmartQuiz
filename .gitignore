@@ -68,5 +68,8 @@ node_modules/
 # dataconnect generated files
 .dataconnect
 
+# Secret API keys — NEVER push to GitHub
+api-keys.js
+
 # Local API Keys Config (DO NOT REMOVE)
 api-keys.js
