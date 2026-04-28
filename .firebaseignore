@@ -1,0 +1,5 @@
+# This file tells Firebase to ignore the .gitignore rules
+# so that api-keys.js can be deployed to the live website.
+
+.git
+.gitignore

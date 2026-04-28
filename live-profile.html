@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -976,7 +976,7 @@
             console.error("Analysis trigger failed", err);
             analysisContainer.innerHTML = `
               <div class="ai-content-box" style="border-color: var(--accent-red); color: var(--accent-red); text-align:center;">
-                <p>⚠️ Crash: ${err.message}</p>
+                <p>⚠️ Failed to connect to AI server. Please try again in a few moments.</p>
               </div>
             `;
           } finally {
@@ -1007,3 +1007,4 @@
 </body>
 
 </html>
+

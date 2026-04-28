@@ -1,5 +1,6 @@
 // SmartQuiz AI Service - OpenRouter implementation
-import { OPENROUTER_API_KEY } from "./api-keys.js";
+import { OPENROUTER_API_KEY } from "./api-keys.js?v=2";
+
 
 
 /**
@@ -48,7 +49,7 @@ export async function getAnswerExplanation(questionText, correctAnswer, userSele
     return await callAI(prompt);
   } catch (error) {
     console.error("Explanation AI Error:", error);
-    return "Tutoring AI is taking a break. Try again in a minute!";
+    return `Explanation AI Error: ${error.message}`;
   }
 }
 
@@ -75,6 +76,6 @@ export async function analyzeLearningWeaknesses(attempts) {
     return await callAI(prompt);
   } catch (error) {
     console.error("Analysis AI Error:", error);
-    return "Analysis AI is currently unavailable. Please try again later!";
+    return `Analysis AI Error: ${error.message}`;
   }
 }

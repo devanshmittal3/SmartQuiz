@@ -1,7 +1,8 @@
 // ============================================================
 // quiz.js — Quiz engine: render, navigate, score, result
 // ============================================================
-import { getAnswerExplanation } from "./ai-service.js";
+import { getAnswerExplanation } from "./ai-service.js?v=2";
+
 
 let questions   = [];
 let currentIdx  = 0;
