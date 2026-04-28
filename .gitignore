@@ -67,3 +67,6 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+# Local API Keys Config (DO NOT REMOVE)
+api-keys.js

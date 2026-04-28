@@ -1,5 +1,6 @@
 // SmartQuiz AI Service - OpenRouter implementation
-const OPENROUTER_API_KEY = "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";
+import { OPENROUTER_API_KEY } from "./api-keys.js";
+
 
 /**
  * Direct fetch call to OpenRouter API
